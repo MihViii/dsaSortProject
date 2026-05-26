@@ -7,8 +7,8 @@
 | STT | MSSV     | Họ và tên          |
 | --- | -------- | ------------------ |
 | 1   | 24122012 | Lê Minh Quân       |
-| 2   |          | Trần Hoàng Minh Vĩ |
-| 3   |          | Huỳnh Tiến Mạnh    |
+| 2   | 24122026 | Trần Hoàng Minh Vĩ |
+| 3   | 24122042 | Huỳnh Tiến Mạnh    |
 
 # A. Integer Sort
 
