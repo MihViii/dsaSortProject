@@ -1,39 +1,32 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <utility>
 
 using namespace std;
 
-inline int charAt(const string &s, int d) {
-    if (d < (int)s.size()) 
-        return (unsigned char)s[d];
-    return -1;
-}
+void lsdRadixSort(const vector<string>& arr, vector<int>& idx, int len) {
+    int n = idx.size();
+    if (n <= 1) return;
+    
+    vector<int> tempIdx(n);
 
-void quicksort(vector<string> &a, int lo, int hi, int d) {
-    if (hi <= lo) return;
-
-    int mid = lo + (hi - lo) / 2;
-    swap(a[lo], a[mid]);
-
-    int lt = lo, gt = hi;
-    int v = charAt(a[lo], d);
-    int i = lo + 1;
-
-    while (i <= gt) {
-        int t = charAt(a[i], d);
-        if (t < v) 
-            swap(a[lt++], a[i++]);
-        else if (t > v) 
-            swap(a[i], a[gt--]);
-        else i++;
+    for (int d = len - 1; d >= 0; d--) {
+        int count[256] = {0}; 
+        
+        for (int i = 0; i < n; i++) {
+            count[(unsigned char)arr[idx[i]][d]]++;
+        }
+        
+        for (int i = 1; i < 256; i++) {
+            count[i] += count[i - 1];
+        }
+        
+        for (int i = n - 1; i >= 0; i--) {
+            tempIdx[--count[(unsigned char)arr[idx[i]][d]]] = idx[i];
+        }
+        
+        idx.swap(tempIdx);
     }
-
-    quicksort(a, lo, lt - 1, d);
-    if (v >= 0) 
-        quicksort(a, lt, gt, d + 1);
-    quicksort(a, gt + 1, hi, d);
 }
 
 int main() {
@@ -54,11 +47,17 @@ int main() {
     cout << n << '\n';
 
     for (int len = 10; len <= 100; len++) {
-        if (!buckets[len].empty()) {
-            quicksort(buckets[len], 0, (int)buckets[len].size() - 1, 0);
+        int bSize = buckets[len].size();
+        if (bSize > 0) {
+            vector<int> idx(bSize);
+            for (int i = 0; i < bSize; i++) {
+                idx[i] = i;
+            }
 
-            for (const string &s : buckets[len]) {
-                cout << s << '\n';
+            lsdRadixSort(buckets[len], idx, len);
+
+            for (int i = 0; i < bSize; i++) {
+                cout << buckets[len][idx[i]] << '\n';
             }
         }
     }
