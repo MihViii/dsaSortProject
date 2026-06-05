@@ -111,12 +111,9 @@ Thuật toán cài đặt tốt nhất ở lần chạy đầu tiên: **Bucket S
 
 ## C3. Tối ưu Benchmark 2
 
-Thuật toán cài đặt tốt nhất ở lần thứ hai: Vẫn duy trì kiến trúc **Bucket Sort kết hợp 3-way Radix Quicksort** từ Benchmark 1, nhưng tích hợp tối ưu **Move Semantics** và **hoán vị con trỏ (Pointer Swapping)**.
-
-**Lý do nhóm tiếp tục giữ lại thuật toán của Benchmark 1 để xử lý các chuỗi cùng độ dài:**
-* Thứ nhất, đảm bảo tính học thuật và tuân thủ ràng buộc của đồ án là không sử dụng các hàm sắp xếp lai có sẵn như `std::sort`.
-* Thứ hai, 3-way Radix Quicksort mang tính chất phân hoạch theo từng ký tự độc lập (character-by-character) thay vì so sánh nguyên chuỗi. Khi đối mặt với các bộ test case ác ý chứa các chuỗi có tiền tố giống hệt nhau cực dài, thuật toán này sẽ gom cụm và bỏ qua các ký tự đã phân loại thành công, triệt tiêu hoàn toàn các phép so sánh thừa. Đặc tính này giúp thuật toán miễn nhiễm với bẫy tiền tố và hiệu quả hơn hẳn việc dùng các thuật toán Quicksort truyền thống.
+Thuật toán cài đặt tốt nhất ở lần thứ hai: Vẫn duy trì kiến trúc **Bucket Sort kết hợp 3-way Radix Quicksort** từ Benchmark 1, nhưng tích hợp các bản vá tối ưu sâu về mặt cấp phát vùng nhớ và cơ chế chia để trị.
 
 **Phương thức tối ưu tiếp tục so với lần 1:**
-* **Áp dụng Move Semantics (C++11):** Ở lần 1, thao tác nạp chuỗi vào phân xô `buckets[s.size()].push_back(s)` tạo ra hành vi Deep Copy (sao chép cấp phát động) gây tốn chi phí $O(L)$ với $L$ là chiều dài chuỗi. Ở lần 2, nâng cấp lệnh này thành `push_back(std::move(s))`. Cú pháp `move` giúp chuyển giao thẳng quyền sở hữu vùng nhớ thay vì sao chép từng ký tự, đưa chi phí phân xô về chuẩn $O(1)$.
-* **Triệt tiêu thắt nút cổ chai ở hàm hoán vị (`swap`):** Hàm `swapStr` tự cài đặt ở lần 1 sử dụng biến tạm (`string t = a; a = b; b = t;`) bắt bộ nhớ Heap phải sao chép dữ liệu liên tục hàng triệu lần. Nhóm thay thế bằng hàm `std::swap` của C++. Vì bản chất `std::string` quản lý dữ liệu qua con trỏ, `std::swap` sẽ chỉ thực hiện đổi chéo 2 địa chỉ con trỏ ($O(1)$) thay vì bê nguyên nội dung chuỗi ($O(L)$), giúp cắt giảm hơn 60% thời gian chạy thực tế.
+* **Bẻ gãy bẫy mảng tuyến tính bằng Pivot động (Middle Pivot Selection):** Thay vì lấy phần tử đầu tiên làm chốt, thuật toán tính toán phần tử ở giữa `mid = lo + (hi - lo) / 2` rồi hoán vị nó lên đầu mảng trước khi tiến hành phân hoạch 3 hướng. Can thiệp nhỏ này phá vỡ hoàn toàn cấu trúc tuyến tính của các test case mảng nghịch/mảng thuận, đảm bảo độ phức tạp luôn ổn định ở mức $O(N \log N)$.
+* **Triệt tiêu chi phí Deep Copy bằng Move Semantics (C++11):** Ở lần 1, thao tác nạp chuỗi vào phân xô tạo ra hành vi sao chép cấp phát động tốn $O(L)$ thời gian. Ở lần 2, nâng cấp thành `push_back(std::move(s))`. Lệnh `move` cướp quyền sở hữu vùng nhớ của chuỗi đầu vào thay vì sao chép, đưa chi phí phân xô về $O(1)$.
+* **Tối ưu hoán vị con trỏ (Pointer Swapping):** Hàm `swapStr` tự cài đặt dùng biến tạm gây tốn RAM được thay thế hoàn toàn bằng hàm `std::swap` của C++. Do cấu trúc `std::string` quản lý mảng ký tự qua con trỏ nội bộ, `std::swap` sẽ chỉ tráo đổi địa chỉ vùng nhớ của hai chuỗi thay vì sao chép toàn bộ dữ liệu. Thao tác hoán vị giảm từ $O(L)$ xuống $O(1)$, tăng tốc độ thực thi tổng thể lên đáng kể.
