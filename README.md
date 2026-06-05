@@ -111,10 +111,12 @@ Thuật toán cài đặt tốt nhất ở lần chạy đầu tiên: **Bucket S
 
 ## C3. Tối ưu Benchmark 2
 
-Thuật toán cài đặt tốt nhất ở lần thứ hai: **Bucket Sort kết hợp Move Semantics và IntroSort (`std::sort`)**.
+Thuật toán cài đặt tốt nhất ở lần thứ hai: Vẫn duy trì kiến trúc **Bucket Sort kết hợp 3-way Radix Quicksort** từ Benchmark 1, nhưng tích hợp tối ưu **Move Semantics** và **hoán vị con trỏ (Pointer Swapping)**.
+
+**Lý do nhóm tiếp tục giữ lại thuật toán của Benchmark 1 để xử lý các chuỗi cùng độ dài:**
+* Thứ nhất, đảm bảo tính học thuật và tuân thủ ràng buộc của đồ án là không sử dụng các hàm sắp xếp lai có sẵn như `std::sort`.
+* Thứ hai, 3-way Radix Quicksort mang tính chất phân hoạch theo từng ký tự độc lập (character-by-character) thay vì so sánh nguyên chuỗi. Khi đối mặt với các bộ test case ác ý chứa các chuỗi có tiền tố giống hệt nhau cực dài, thuật toán này sẽ gom cụm và bỏ qua các ký tự đã phân loại thành công, triệt tiêu hoàn toàn các phép so sánh thừa. Đặc tính này giúp thuật toán miễn nhiễm với bẫy tiền tố và hiệu quả hơn hẳn việc dùng các thuật toán Quicksort truyền thống.
 
 **Phương thức tối ưu tiếp tục so với lần 1:**
-* **Move Semantics (C++11):** Ở lần 1, lệnh hoán vị (`swapStr`) tạo ra chi phí Deep Copy rất lớn ($O(L)$). Ở lần 2, ta dùng `buckets[s.length()].push_back(move(s))`. Lệnh `move` cướp quyền sở hữu vùng nhớ thay vì sao chép ký tự, đưa chi phí phân xô về đúng $O(1)$.
-* **Loại bỏ đệ quy sâu:** Thay vì tự cài đặt Quicksort đệ quy sâu dễ bị tràn Stack (Stack Overflow) với test mảng ngược ở C2, ta áp dụng trực tiếp `std::sort` lên từng xô tĩnh đã được chia rất nhỏ. 
-
-**Lý giải cải tiến:** Cải tiến này triệt tiêu hoàn toàn chi phí Memory Overhead. Hàm `std::sort` trong thư viện C++ thực chất là IntroSort, nó tự động lùi về Heap Sort nếu phát hiện Quicksort bị suy biến (do mảng ngược). Kết hợp với việc chia xô siêu nhỏ giúp dữ liệu nằm trọn trong L1 Cache, thuật toán mới đạt hiệu năng kịch trần và miễn nhiễm hoàn toàn với test case do C2 sinh ra.
+* **Áp dụng Move Semantics (C++11):** Ở lần 1, thao tác nạp chuỗi vào phân xô `buckets[s.size()].push_back(s)` tạo ra hành vi Deep Copy (sao chép cấp phát động) gây tốn chi phí $O(L)$ với $L$ là chiều dài chuỗi. Ở lần 2, nâng cấp lệnh này thành `push_back(std::move(s))`. Cú pháp `move` giúp chuyển giao thẳng quyền sở hữu vùng nhớ thay vì sao chép từng ký tự, đưa chi phí phân xô về chuẩn $O(1)$.
+* **Triệt tiêu thắt nút cổ chai ở hàm hoán vị (`swap`):** Hàm `swapStr` tự cài đặt ở lần 1 sử dụng biến tạm (`string t = a; a = b; b = t;`) bắt bộ nhớ Heap phải sao chép dữ liệu liên tục hàng triệu lần. Nhóm thay thế bằng hàm `std::swap` của C++. Vì bản chất `std::string` quản lý dữ liệu qua con trỏ, `std::swap` sẽ chỉ thực hiện đổi chéo 2 địa chỉ con trỏ ($O(1)$) thay vì bê nguyên nội dung chuỗi ($O(L)$), giúp cắt giảm hơn 60% thời gian chạy thực tế.
